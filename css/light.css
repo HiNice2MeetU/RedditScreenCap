@@ -1,0 +1,12 @@
+body {
+	background: white;
+	color: black;
+}
+
+.credit {
+	color: darkcyan;
+}
+
+a:link {
+	color: darkcyan;
+}
