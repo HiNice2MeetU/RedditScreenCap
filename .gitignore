@@ -1,4 +1,4 @@
 praw.ini
 out/
 PostsReplied.txt
-_pycache_
+__pycache__
