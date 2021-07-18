@@ -1,7 +1,8 @@
 import praw
+import config
 from prawcore.exceptions import NotFound
 
-TriggerKeyword = "!ScreenCap"
+
 
 def CommentExists(id, Reddit):
     try:
@@ -26,8 +27,8 @@ def GetParentComment(SummonComment, Reddit):
 def ProcessCommentsArgs(Text):
 	Return = {
 		"Theme" : "dark",
-		"Delivery" : "comment",
-		"Target" : "parent-post"
+		"PostSubreddit" : config.PostSubredditName,
+		"Target" : "current-post"
 	}
 
 	SplitText = Text.split(" ")
@@ -37,7 +38,7 @@ def ProcessCommentsArgs(Text):
 	for i in range(0,len(SplitText)):
 		Section = SplitText[i]
 		SplitText.pop(0)
-		if Section == TriggerKeyword:
+		if Section == config.TriggerKeyword:
 			index = i
 			break
 
@@ -47,23 +48,21 @@ def ProcessCommentsArgs(Text):
 
 	# Get options
 	#print(str(SplitText))
-	for e in range(0,len(SplitText)):
+	for e in range(0,len(SplitText)-1):
 		Section = SplitText[e]
-		
+		NextSection = SplitText[e + 1]
+
+		#print(NextSection)
 
 		if Section == "-theme":
 			# Set theme
-			NextSection = SplitText[e + 1]
 			Return["Theme"] = NextSection
 
 		elif Section == "-target":
 			# Set the target (eg. the parent comment or child comment)
-			NextSection = SplitText[e + 1]
 			Return["Target"] = NextSection
-		elif Section == "-delivery":
-			# Set the deliver (eg. post on sub or comment link)
-			if NextSection == "subreddit":
-				Return["Delivery"] = "post"
-				Return["PostSubreddit"] = SplitText[e + 2].replace('r/', '')
+		elif Section == "-subreddit":
+			# If used will post image on other sub than the default post
+			Return["PostSubreddit"] = NextSection.replace('r/', '')
 
 	return Return

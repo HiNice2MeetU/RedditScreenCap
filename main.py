@@ -13,34 +13,22 @@ from datetime import datetime
 import signal
 import sys
 import util as Util
-
-
+import config
 
 #imgkit.from_url('http://google.com', 'out.jpg')
-
-Reddit = praw.Reddit("bot1")
-Subreddit = Reddit.subreddit("all")
-PostSubredditName = "ScreenCapResults"
-PostSubreddit = Reddit.subreddit(PostSubredditName)
-
 CommentQueue = []
 ReplyQueue = []
 
 LockComment = threading.Lock()
 LockReply = threading.Lock()
 
-OutDir = "out"
+
 
 Running = True
-Themes = {
-	"light" : "css/light.css",
-	"dark" : "css/dark.css",
-	"common" : "css/common.css"
-}
 
 # Create out dir
-if not os.path.isdir(OutDir):
-	os.mkdir(OutDir)
+if not os.path.isdir(config.OutDir):
+	os.mkdir(config.OutDir)
 
 
 class Reply():
@@ -48,28 +36,30 @@ class Reply():
 		self.SummonComment = SummonComment
 		self.Msg = Msg
 
+# The reply calss for sucessfule replies
 class LinkReply(Reply):
-	def __init__(self,SummonComment, Link):
+	def __init__(self,SummonComment, Link, Sub):
 		RawMsg = "Find your picture on r/{0} at [{1}]({1})!"
 		self.Link = Link
-		super().__init__(SummonComment, RawMsg.format(PostSubredditName, Link))
+		self.Sub = Sub
+		super().__init__(SummonComment, RawMsg.format(Sub, Link))
 
+# Error reply class
 class ErrorReply(Reply):
 	def __init__(self,SummonComment, Err):
-		super().__init__(SummonComment, str(Err))
+		super().__init__(SummonComment, "ERR - " + str(Err))
 
 
 # Thread to read through all the new comments and add them to the stack
 def ReadComments():
 	global LockComment
 	global CommentQueue
-	for SummonComment in Subreddit.stream.comments():
-		print(SummonComment.body)
+	for SummonComment in config.ReadSubreddit.stream.comments():
+		#print(SummonComment.body)
 		#print("[ReadComments]: " + str(Running))
-		if re.search(Util.TriggerKeyword, SummonComment.body, re.IGNORECASE) and Util.CommentExists(SummonComment.id, Reddit):
+		if re.search(config.TriggerKeyword, SummonComment.body, re.IGNORECASE) and Util.CommentExists(SummonComment.id, config.Reddit):
 			if not Remember.IsReplied(SummonComment.id):
 				Remember.AddReplied(SummonComment.id)
-
 				LockComment.acquire()
 				CommentQueue.append(SummonComment)
 				LockComment.release()
@@ -100,23 +90,27 @@ def ContentGen():
 				Options = Util.ProcessCommentsArgs(SummonComment.body)
 				
 				# Get an set the theme of the image
-				CssTheme = [Themes["common"], Themes[Options["Theme"]]]
+				try:
+					CssTheme = [config.Themes["common"], config.Themes[Options["Theme"]]]
+				except Exception as e:
+					raise Exception("Invalid Theme: " + str(e))
 				#print(str(CssTheme))
-				#ImgFile = OutDir + "/" + SummonComment.id + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") +".jpg" 
-				ImgFile = OutDir + "/" + SummonComment.id + ".jpg"
+				#ImgFile = config.OutDir + "/" + SummonComment.id + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") +".jpg" 
+				ImgFile = config.OutDir + "/" + SummonComment.id + ".jpg"
 				# Get the comments to display on the image
 				Comment = None
 				IncludePost = True
 
+				# Determine which post to capture
 				if Options["Target"] == "parent-post":
-					Comment = Util.GetParentComment(SummonComment, Reddit)
+					Comment = Util.GetParentComment(SummonComment, config.Reddit)
 				elif Options["Target"] == "current-post":
 					Comment = SummonComment
 				elif Options["Target"] == "current":
 					Comment = SummonComment
 					IncludePost = False
 				elif Options["Target"] == "parent":
-					Comment = Util.GetParentComment(SummonComment, Reddit)
+					Comment = Util.GetParentComment(SummonComment, config.Reddit)
 					IncludePost = False
 				else:
 					Log.Bad("No target detected: " + Options["Target"])
@@ -140,8 +134,8 @@ def ContentGen():
 				imgkit.from_string(RenderHtml, ImgFile, css=CssTheme)
 
 				# Add the reply msg to the reply stack
-				LockReply.acquire()
-				ReplyQueue.append(LinkReply(SummonComment, ImgFile))
+				LockReply.acquire()	
+				ReplyQueue.append(LinkReply(SummonComment, ImgFile, Options["PostSubreddit"]))
 				LockReply.release()
 			except Exception as e:
 				Log.Bad(str(e))
@@ -158,7 +152,6 @@ def ReplyManager():
 	global ReplyQueue
 	while True:
 		if len(ReplyQueue) > 0:
-
 			LockReply.acquire()
 			CurrentReply = ReplyQueue.pop()
 			LockReply.release()
@@ -168,27 +161,44 @@ def ReplyManager():
 			#print(str(CurrentReply))
 			# Determine type and react
 			if type(CurrentReply) is LinkReply:
-				Post = PostSubreddit.submit_image(CurrentReply.SummonComment.id, CurrentReply.Link)
-				NewLink = LinkReply(CurrentReply.SummonComment, Post.permalink)
-				CurrentReply.SummonComment.reply(NewLink.Msg)
-				Log.Good(CurrentReply.SummonComment.id + " has had a reply: " + NewLink.Msg)
+				# Post the image on the sub in the link reply
+				try:
+					#print(type(CurrentReply.Sub));
+					PostSub = config.Reddit.subreddit(CurrentReply.Sub)
+					Post = PostSub.submit_image(CurrentReply.SummonComment.id, CurrentReply.Link)
+
+					# Send the reply
+					NewLink = LinkReply(CurrentReply.SummonComment, Post.permalink, CurrentReply.Sub)
+					CurrentReply.SummonComment.reply(NewLink.Msg)
+					Log.Good(CurrentReply.SummonComment.id + " has had a reply: " + NewLink.Msg)
+				except Exception as e:
+					Log.Bad(str(e))
+					#if type(Exception) != praw.exceptions.RedditAPIException:
+					LockReply.acquire()
+					ReplyQueue.append(ErrorReply(CurrentReply.SummonComment,e))
+					LockReply.release()
+				
+
+				
 			elif type(CurrentReply) is ErrorReply or type(CurrentReply) is Reply:
+
+				# if it is a error
 				CurrentReply.SummonComment.reply(CurrentReply.Msg)
 				Log.Bad(CurrentReply.SummonComment.id + " has had a error: " + CurrentReply.Msg)
 			else:
 				Log.Bad("Unknown Reply Type!")
 
 
+			
+
+
 # Boot
 Remember.InitReplied()
 atexit.register(Remember.WriteReplied)
-
 #ReadComments()
 #ContentGen()
 
 threading.Thread(target=ReadComments, name='ReadComments', daemon=True).start()
-#threading.Thread(target=ReadComments, name='ReadComments', daemon=True).start()
-#threading.Thread(target=ReadComments, name='ReadComments', daemon=True).start()
 threading.Thread(target=ContentGen, name='ContentGen', daemon=True).start()
 threading.Thread(target=ReplyManager, name='ReplyManager', daemon=True).start()
 
@@ -222,6 +232,7 @@ def signal_handler(signal, frame):
 	#B.join(600)
 	#LockComment.acquire()
 	#LockComment.release()
+	Remember.WriteReplied
 	sys.exit(0)
 
 

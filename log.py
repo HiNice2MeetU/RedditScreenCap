@@ -7,7 +7,7 @@ def Good(Msg):
 	#print("✓ " + Msg)
 
 def Bad(Msg):
-	print(Fore.RED + "✘ " + Msg)
+	print(Fore.RED + "x " + Msg)
 	print(Style.RESET_ALL, end="")
 	#print("✘ " + Msg)
 

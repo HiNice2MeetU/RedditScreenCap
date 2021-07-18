@@ -1,24 +1,22 @@
 import log as Log
 import os
-
-RepliedFileStorage = "PostsReplied.txt"
+import config
 
 # Write the post replied array on shutdown
 def WriteReplied():
 	Log.Good("Writing Comments Posts")
-	with open(RepliedFileStorage, "w") as File:
+	with open(config.RepliedFileStorage, "w") as File:
 		for Post in PostReplied:
 			File.write(Post + "\n")
 	Log.Info("Loaded Comments Replied: " + str(PostReplied))
 
 # Read the replied comments if file exists
 def InitReplied():
-	# AHH Global
+	# AHH Global 
 	global PostReplied
-	
 
-	if os.path.isfile(RepliedFileStorage):
-		with open(RepliedFileStorage, "r") as File:
+	if os.path.isfile(config.RepliedFileStorage):
+		with open(config.RepliedFileStorage, "r") as File:
 			ReadFile = File.read()
 			SplitFile = ReadFile.split("\n")
 			
@@ -26,8 +24,8 @@ def InitReplied():
 
 			Log.Good("Reading Replied Comments")
 	else:
-		PostReplied = []
-		File = open(RepliedFileStorage, "x")
+		#PostReplied = []
+		File = open(config.RepliedFileStorage, "x")
 		File.close()
 
 # Check if has been replied too
