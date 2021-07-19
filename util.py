@@ -31,7 +31,7 @@ def ProcessCommentsArgs(Text):
 		"Target" : "current-post"
 	}
 
-	SplitText = Text.split(" ")
+	SplitText = Text.split()
 	index = None
 
 	# Find the index of TriggerKeyword
@@ -44,7 +44,6 @@ def ProcessCommentsArgs(Text):
 
 	if index == None:
 		raise Exception("No trigger keyword found!")
-	
 
 	# Get options
 	#print(str(SplitText))

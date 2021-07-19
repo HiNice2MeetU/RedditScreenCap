@@ -134,15 +134,14 @@ def ContentGen():
 				imgkit.from_string(RenderHtml, ImgFile, css=CssTheme)
 
 				# Add the reply msg to the reply stack
-				LockReply.acquire()	
-				ReplyQueue.append(LinkReply(SummonComment, ImgFile, Options["PostSubreddit"]))
-				LockReply.release()
+				with LockReply:
+					ReplyQueue.append(LinkReply(SummonComment, ImgFile, Options["PostSubreddit"]))
+				
 			except Exception as e:
 				Log.Bad(str(e))
 
-				LockReply.acquire()
-				ReplyQueue.append(ErrorReply(SummonComment,e))
-				LockReply.release()
+				with LockReply:
+					ReplyQueue.append(ErrorReply(SummonComment,e))
 
 				#break
 
@@ -152,9 +151,9 @@ def ReplyManager():
 	global ReplyQueue
 	while True:
 		if len(ReplyQueue) > 0:
-			LockReply.acquire()
-			CurrentReply = ReplyQueue.pop()
-			LockReply.release()
+			with LockReply:
+				CurrentReply = ReplyQueue.pop()
+			
 
 			Log.Info(CurrentReply.SummonComment.id + " has made it to the REPLY stage")
 
@@ -174,9 +173,9 @@ def ReplyManager():
 				except Exception as e:
 					Log.Bad(str(e))
 					#if type(Exception) != praw.exceptions.RedditAPIException:
-					LockReply.acquire()
-					ReplyQueue.append(ErrorReply(CurrentReply.SummonComment,e))
-					LockReply.release()
+					with LockReply:
+						ReplyQueue.append(ErrorReply(CurrentReply.SummonComment,e))
+					
 				
 
 				
