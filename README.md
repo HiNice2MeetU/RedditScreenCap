@@ -1,6 +1,6 @@
 # RedditScreenCap
 
-## A smol bot to automatically take a screenshot of a comment and post it somewhere!
+## A small bot to automatically take a screenshot of a comment and post it somewhere!
 
 This was really just an excuse for me to finally learn some python but whatever...
 
