@@ -5,7 +5,7 @@
 This was really just an excuse for me to finally learn some python but whatever...
 
 ### How does it work
-It simpiles gets your comment from the reddit api (using praw) and renders the html (using imgkit) to a image then posts it on the sub of your choice!
+It simplifies extracting your comments from the reddit api (using praw) and renders the html (using imgkit) to a image then posts it on the sub of your choice!
 
 
 ### Results
@@ -45,7 +45,6 @@ Make a new comment under a post or comment then type...
 |RepliedFileStorage | File containing all the comments it has replied too | PostsReplied.txt |
 
 #### External packages used
-- atexit
 - imgkit
 - praw
 - markdown
