@@ -49,5 +49,6 @@ Make a new comment under a post or comment then type...
 - praw
 - markdown
 - requests
-
-built in python!
+- colorama
+- 
+Built in python!
