@@ -1,0 +1,3 @@
+imgkit == 1.2.2
+praw == 7.4.0
+colorama == 0.4.4
